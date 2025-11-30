@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cofit Integrated Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #00C2A0;
+            --primary-dark: #009E82;
+            --bg: #F7F9FC;
+            --card-bg: #FFFFFF;
+            --text-main: #2C3E50;
+            --text-sub: #7F8C8D;
+            --danger: #FF6B6B;
+            --warning: #F1C40F;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background-color: var(--bg);
+            border-radius: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            border: 12px solid #333;
+        }
+
+        .status-bar {
+            height: 44px;
+            background-color: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10;
+        }
+
+        /* Calendar Strip */
+        .calendar-strip {
+            background-color: var(--card-bg);
+            padding: 10px 0 20px 0;
+            display: flex;
+            justify-content: space-around;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            z-index: 5;
+        }
+
+        .calendar-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .calendar-day.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 194, 160, 0.3);
+        }
+
+        .day-name {
+            font-size: 12px;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .day-number {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* Main Content */
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Dashboard Card */
+        .dashboard-card {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 20px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-title {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .dashboard-focus {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar-bg {
+            background-color: rgba(255, 255, 255, 0.2);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            background-color: white;
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .dashboard-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .ai-btn {
+            background: linear-gradient(135deg, #667EEA, #764BA2);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(118, 75, 162, 0.3);
+            transition: transform 0.1s;
+        }
+
+        .ai-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Habit Items */
+        .habit-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .habit-card.priority {
+            border-left-color: var(--warning);
+        }
+
+        .habit-check {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .habit-check.checked {
+            background-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .habit-content {
+            flex: 1;
+        }
+
+        .habit-title {
+            font-size: 16px;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .habit-anchor {
+            font-size: 12px;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .habit-anchor::before {
+            content: '⚓';
+            font-size: 10px;
+        }
+
+        /* Meal Items */
+        .meal-item {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-info h4 {
+            margin: 0 0 4px 0;
+            font-size: 16px;
+            color: var(--text-main);
+        }
+
+        .meal-info p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .meal-cal {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            height: 83px;
+            background-color: var(--card-bg);
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            padding-top: 10px;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #ccc;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .tab-item.active {
+            color: var(--primary);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background-color: white;
+            width: 100%;
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            padding: 25px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--text-main);
+        }
+
+        .suggestion-chip {
+            background-color: #F0F2F5;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            border-color: var(--primary);
+            background-color: #E6FFFA;
+        }
+
+        .suggestion-anchor {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .suggestion-behavior {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- Mock Data ---
+        const MOCK_DATA = {
+            '2023-11-27': {
+                habits: [
+                    { id: 'h1', title: '喝一杯溫水', anchor: '起床後', completed: true, type: 'tiny' },
+                ],
+                meals: [
+                    { id: 'm1', type: '早餐', content: '全麥吐司, 蛋', cal: 300 },
+                ]
+            },
+            '2023-11-28': { // Today
+                habits: [
+                    { id: 'h2', title: '深蹲 5 下', anchor: '上完廁所後', completed: false, type: 'tiny' },
+                    { id: 'h3', title: '吃一顆蘋果', anchor: '下午茶時間', completed: false, type: 'health' },
+                ],
+                meals: [
+                    { id: 'm2', type: '早餐', content: '燕麥片, 藍莓', cal: 250 },
+                    { id: 'm3', type: '午餐', content: '雞胸肉沙拉', cal: 400 },
+                ]
+            },
+            '2023-11-29': {
+                habits: [],
+                meals: []
+            }
+        };
+
+        const AI_SUGGESTIONS = [
+            { anchor: '早上刷牙後', behavior: '對鏡子微笑', reason: '開啟正向的一天' },
+            { anchor: '喝完咖啡後', behavior: '喝一杯水', reason: '補充水分' },
+            { anchor: '打開電腦前', behavior: '寫下今日最重要的目標', reason: '提升專注力' },
+            { anchor: '晚餐後', behavior: '把運動鞋拿出來放門口', reason: '降低運動門檻' },
+        ];
+
+        // --- Components ---
+
+        const CalendarStrip = ({ selectedDate, onSelectDate }) => {
+            const dates = [
+                { day: '週一', date: '27', full: '2023-11-27' },
+                { day: '週二', date: '28', full: '2023-11-28' },
+                { day: '週三', date: '29', full: '2023-11-29' },
+                { day: '週四', date: '30', full: '2023-11-30' },
+                { day: '週五', date: '01', full: '2023-12-01' },
+            ];
+
+            return (
+                <div className="calendar-strip">
+                    {dates.map(d => (
+                        <div
+                            key={d.full}
+                            className={`calendar-day ${selectedDate === d.full ? 'active' : ''}`}
+                            onClick={() => onSelectDate(d.full)}
+                        >
+                            <span className="day-name">{d.day}</span>
+                            <span className="day-number">{d.date}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const DashboardCard = ({ habits }) => {
+            const total = habits.length;
+            const completed = habits.filter(h => h.completed).length;
+            const progress = total === 0 ? 0 : (completed / total) * 100;
+
+            return (
+                <div className="dashboard-card">
+                    <div className="dashboard-title">今日專注目標</div>
+                    <div className="dashboard-focus">
+                        {progress === 100 ? '太棒了！目標達成 🎉' : '建立微習慣，改變大人生'}
+                    </div>
+                    <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <div className="dashboard-stats">
+                        <span>已完成 {completed}/{total}</span>
+                        <span>{Math.round(progress)}%</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const AISuggestionModal = ({ isOpen, onClose, onAdd }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-overlay" onClick={onClose}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="modal-title">✨ AI 行為設計教練</div>
+                        <p style={{ color: '#666', marginBottom: '15px', fontSize: '14px' }}>
+                            根據 BJ Fogg 的行為設計模型，我為你推薦幾個容易執行的「微習慣」：
+                        </p>
+                        {AI_SUGGESTIONS.map((s, i) => (
+                            <div key={i} className="suggestion-chip" onClick={() => onAdd(s)}>
+                                <div className="suggestion-anchor">⚓ 當我 {s.anchor}</div>
+                                <div className="suggestion-behavior">我就會 {s.behavior}</div>
+                            </div>
+                        ))}
+                        <button
+                            style={{ width: '100%', padding: '15px', border: 'none', background: '#eee', borderRadius: '12px', marginTop: '10px', fontWeight: 'bold', color: '#666' }}
+                            onClick={onClose}
+                        >
+                            取消
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [date, setDate] = useState('2023-11-28');
+            const [data, setData] = useState(MOCK_DATA);
+            const [showAI, setShowAI] = useState(false);
+
+            const currentData = data[date] || { habits: [], meals: [] };
+
+            const toggleHabit = (id) => {
+                const newData = { ...data };
+                const habit = newData[date].habits.find(h => h.id === id);
+                habit.completed = !habit.completed;
+                setData(newData);
+
+                if (habit.completed) {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#00C2A0', '#FF6B6B', '#F1C40F']
+                    });
+                }
+            };
+
+            const addHabit = (suggestion) => {
+                const newData = { ...data };
+                if (!newData[date]) newData[date] = { habits: [], meals: [] };
+
+                newData[date].habits.push({
+                    id: Date.now().toString(),
+                    title: suggestion.behavior,
+                    anchor: suggestion.anchor,
+                    completed: false,
+                    type: 'tiny'
+                });
+                setData(newData);
+                setShowAI(false);
+            };
+
+            return (
+                <div className="phone-frame">
+                    <div className="status-bar">
+                        <span>9:41</span>
+                        <span>100%</span>
+                    </div>
+
+                    <CalendarStrip selectedDate={date} onSelectDate={setDate} />
+
+                    <div className="scroll-content">
+                        <DashboardCard habits={currentData.habits} />
+
+                        {/* Habits Section */}
+                        <div className="section-header">
+                            <span className="section-title">習慣養成</span>
+                            <button className="ai-btn" onClick={() => setShowAI(true)}>
+                                <span>✨ AI 建議</span>
+                            </button>
+                        </div>
+
+                        {currentData.habits.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px', border: '2px dashed #eee', borderRadius: '12px', marginBottom: '20px' }}>
+                                今天還沒有設定習慣<br />試試看 AI 建議？
+                            </div>
+                        ) : (
+                            currentData.habits.map(h => (
+                                <div key={h.id} className="habit-card">
+                                    <div
+                                        className={`habit-check ${h.completed ? 'checked' : ''}`}
+                                        onClick={() => toggleHabit(h.id)}
+                                    >
+                                        {h.completed && <span style={{ color: 'white', fontWeight: 'bold' }}>✓</span>}
+                                    </div>
+                                    <div className="habit-content">
+                                        <div className="habit-title" style={{ textDecoration: h.completed ? 'line-through' : 'none', opacity: h.completed ? 0.5 : 1 }}>
+                                            {h.title}
+                                        </div>
+                                        <div className="habit-anchor">
+                                            {h.anchor}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+
+                        {/* Meals Section */}
+                        <div className="section-header" style={{ marginTop: '25px' }}>
+                            <span className="section-title">飲食紀錄</span>
+                            <span style={{ color: '#00C2A0', fontSize: '14px' }}>+ 新增</span>
+                        </div>
+
+                        {currentData.meals.map(m => (
+                            <div key={m.id} className="meal-item">
+                                <div className="meal-info">
+                                    <h4>{m.type}</h4>
+                                    <p>{m.content}</p>
+                                </div>
+                                <div className="meal-cal">{m.cal} kcal</div>
+                            </div>
+                        ))}
+
+                        <div style={{ height: '50px' }}></div>
+                    </div>
+
+                    <div className="tab-bar">
+                        <div className="tab-item active">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                            <span>日記</span>
+                        </div>
+                        <div className="tab-item">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <span>分析</span>
+                        </div>
+                        <div className="tab-item">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            <span>個人</span>
+                        </div>
+                    </div>
+
+                    <AISuggestionModal
+                        isOpen={showAI}
+                        onClose={() => setShowAI(false)}
+                        onAdd={addHabit}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+
+</body>
+
+</html>
